@@ -25,7 +25,7 @@ trait Jump
      */
     protected $app;
 
-    protected array $responseJsonMethod = ['POST'];
+    protected array $jsonMethod = [];
 
     /**
      * 构造方法
@@ -36,6 +36,7 @@ trait Jump
     {
         $this->app     = $app;
         $this->request = $this->app->request;
+        $this->jsonMethod = $this->app->config->get('jump.jsonMethod');
     }
 
     /**
@@ -43,11 +44,12 @@ trait Jump
      * @param string $msg
      * @param null $data
      * @param array $otherData
+     * @param int $code
+     * @param array $header
      * @param string|null $url
      * @param int $wait
-     * @param array $header
      */
-    protected function success(string $msg = '成功', $data = null, array $otherData=[], string $url = null, int $wait = 5, array $header = [])
+    protected function success(string $msg = '成功', $data = null, array $otherData=[], int $code=1 , array $header = [], string $url = null, int $wait = 5)
     {
         if (is_null($url) && isset($_SERVER["HTTP_REFERER"])) {
             $url = $_SERVER["HTTP_REFERER"];
@@ -61,7 +63,7 @@ trait Jump
         }
 
         $result = [
-            'code' => 1,
+            'code' => $code,
             'msg' => $msg,
             'data' => $data,
             'url' => $url,
@@ -86,11 +88,12 @@ trait Jump
      * @param string $msg
      * @param null $data
      * @param array $otherData
+     * @param int $code
+     * @param array $header
      * @param string|null $url
      * @param int $wait
-     * @param array $header
      */
-    protected function error(string $msg = '失败', $data = null, array $otherData=[], string $url = null, int $wait = 5, array $header = [])
+    protected function error(string $msg = '失败', $data = null, array $otherData=[], int $code=0, array $header = [], string $url = null, int $wait = 5)
     {
         if (is_null($url)) {
             $url = $this->request->isAjax() ? '' : 'javascript:history.back(-1);';
@@ -103,7 +106,7 @@ trait Jump
         }
 
         $result = [
-            'code' => 0,
+            'code' => $code,
             'msg' => $msg,
             'data' => $data,
             'url' => $url,
@@ -151,13 +154,13 @@ trait Jump
 
     /**
      * 返回封装后的API数据到客户端
-     * @param $code
-     * @param $msg
+     * @param int $code
+     * @param string $msg
      * @param null $data
      * @param array $otherData
      * @param array $header
      */
-    protected function json($code, $msg, $data=null, array $otherData=[], array $header = [])
+    protected function json(int $code, string $msg, $data=null, array $otherData=[], array $header = [])
     {
         $result = [
             'code' => $code,
@@ -173,18 +176,41 @@ trait Jump
     }
 
     /**
+     * 接口成功返回
+     * @param string $msg
+     * @param null $data
+     * @param array $otherData
+     * @param array $header
+     */
+    function json_success(string $msg='成功', $data=null, array $otherData=[], array $header = []){
+        return $this->json(200,$msg,$data,$otherData,$header);
+    }
+
+    /**
+     * 接口失败返回
+     * @param string $msg
+     * @param null $data
+     * @param array $otherData
+     * @param array $header
+     * @param int $code 默认2001 失败
+     */
+    function json_error(string $msg='失败', $data=null, array $otherData=[], array $header = [], int $code=2001){
+        return $this->json($code,$msg,$data,$otherData,$header);
+    }
+
+    /**
      * URL重定向
      * @access protected
      * @param string $url 跳转的URL表达式
      * @param integer $code http code
-     * @param array $with 隐式传参
+     * @param array $withParam 隐式传参
      * @return void
      */
-    protected function redirect(string $url, int $code = 302, array $with = [])
+    protected function redirect(string $url, int $code = 302, array $withParam = [])
     {
         $response = Response::create($url, 'redirect');
 
-        $response->code($code)->with($with);
+        $response->code($code)->with($withParam);
 
         throw new HttpResponseException($response);
     }
@@ -196,6 +222,6 @@ trait Jump
      */
     protected function getResponseType(): string
     {
-        return ($this->request->isJson() || $this->request->isAjax() || in_array($this->request->method(),$this->responseJsonMethod)) ? 'json' : 'view';
+        return ($this->request->isJson() || $this->request->isAjax() || in_array($this->request->method(),$this->jsonMethod)) ? 'json' : 'view';
     }
 }
