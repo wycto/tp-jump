@@ -182,8 +182,8 @@ trait Jump
      * @param array $otherData
      * @param array $header
      */
-    function json_success(string $msg='成功', $data=null, array $otherData=[], array $header = []){
-        return $this->json(200,$msg,$data,$otherData,$header);
+    function json_success(string $msg='成功', $data=null, array $otherData=[], array $header = [],$code=200){
+        return $this->json($code,$msg,$data,$otherData,$header);
     }
 
     /**
